@@ -29,5 +29,5 @@ run 200000
 
 #Writing final state
 
-write_data data.large_box_melted_200k nocoeff
+write_data [FILENAME] nocoeff
 
