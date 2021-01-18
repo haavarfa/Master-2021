@@ -1,7 +1,5 @@
 import numpy as np
 
-start = time.time()
-
 main = open([MAIN DUMP FILE], "r")
 neighbor = open([NEIGHBOR DUMP FILE], "r")
 
