@@ -1,0 +1,40 @@
+#Computes properties of system in NVE ensemble
+
+read_data [FILENAME] nocoeff
+
+pair_style lj/cut 2.5
+pair_coeff * * 1.0 1.0 2.5
+
+neighbor 0.3 bin
+neigh_modify every 10 delay 0 check yes
+
+fix 2 all nve
+fix 3 all momentum 100 linear 1 1 1
+
+
+compute pener all pe/atom
+compute kener all ke/atom
+compute	voro all voronoi/atom surface all
+compute press all stress/atom thermo_temp
+run 0
+
+
+variable interface atom "(1/c_voro[1]) < [X_HIGH] && (1/c_voro[1]) > [X_LOW]"
+group inter dynamic all var interface every 100
+
+run 100
+
+thermo 100
+timestep 0.002
+compute neighbors inter voronoi/atom neighbors yes
+dump first all custom 100 [FIRST DUMP FILENAME] id type x y z c_voro[1] c_voro[2] c_voro[3] c_pener c_kener c_press[1] c_press[2] c_press[3] c_press[4] c_press[5] c_press[6]
+dump second all local 100 [SECOND DUMP FILENAME] index c_neighbors[1] c_neighbors[2] c_neighbors[3]
+run 20000
+
+unfix 2
+
+
+
+#Writing data
+
+write_data data.[FILENAME] nocoeff
