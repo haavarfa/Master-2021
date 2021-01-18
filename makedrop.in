@@ -1,0 +1,55 @@
+#Read melted droplet state
+
+read_data [FILENAME]
+
+pair_style lj/cut 2.5
+pair_coeff * * 1.0 1.0 2.5
+
+neighbor 0.3 bin
+neigh_modify every 10 delay 0 check yes
+
+#Deleting atoms
+
+variable C equal 33
+variable R equal [INITIAL RADIUS]
+variable Tnew equal 0.8
+region gas sphere $C $C $C $R side out units box
+region drop sphere $C $C $C $R side in units box
+delete_atoms region gas
+
+#Rescaling velocities
+
+group droplet region drop
+group atoms type 1
+velocity atoms scale ${Tnew}
+fix 2 atoms nvt temp ${Tnew} ${Tnew} 0.02
+fix 3 atoms momentum 100 linear 1 1 1
+timestep 0.002
+
+thermo 1000
+
+run [EQUILIBRATION TIME]
+
+unfix 2
+
+#Set temperature to average
+
+reset_timestep 0
+variable T1 equal temp
+variable TE1 equal etotal
+variable KE1 equal ke
+variable PE1 equal pe
+fix Tave1 all ave/time 10000 1 10000 v_T1
+fix TEave1 all ave/time 10000 1 10000 v_TE1
+fix KEave1 all ave/time 10000 1 10000 v_KE1
+fix PEave1 all ave/time 10000 1 10000 v_PE1
+
+run 10000
+reset_timestep 0
+
+variable TempNew equal (f_Tave1*(f_TEave1-f_PEave1)/(f_KEave1))
+velocity all scale ${TempNew}
+
+#Writing data
+
+write_data [FILENAME] nocoeff
