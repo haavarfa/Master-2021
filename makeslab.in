@@ -1,0 +1,61 @@
+#Script for creating the planar reference system
+
+units lj
+atom_style atomic
+lattice fcc 0.8
+
+#Deleting atoms
+
+variable C equal 30.0
+variable D equal 60.0
+variable Tnew equal 0.8
+
+region box block 0 ${C} 0 ${D} 0 ${D} units box
+region init block 0.1 ${C} 0.1 ${C} 0.1 ${C} units box
+
+create_box 1 box
+create_atoms 1 region init
+
+mass * 1.0
+pair_style lj/cut 2.5
+pair_coeff * * 1.0 1.0 2.5
+
+neighbor 0.3 bin
+neigh_modify every 10 delay 0 check yes
+
+#Rescaling velocities
+
+group atoms type 1
+velocity atoms create ${Tnew} 87287
+fix 2 atoms nvt temp ${Tnew} ${Tnew} 0.02
+fix 3 atoms momentum 100 linear 1 1 1
+timestep 0.002
+compute voro all voronoi/atom surface all
+
+thermo 100
+
+run 500000
+
+unfix 2
+
+#set temperature to average
+
+reset_timestep 0
+variable T1 equal temp
+variable TE1 equal etotal
+variable KE1 equal ke
+variable PE1 equal pe
+fix Tave1 all ave/time 10000 1 10000 v_T1
+fix TEave1 all ave/time 10000 1 10000 v_TE1
+fix KEave1 all ave/time 10000 1 10000 v_KE1
+fix PEave1 all ave/time 10000 1 10000 v_PE1
+
+run 10000
+reset_timestep 0
+
+variable TempNew equal (f_Tave1*(f_TEave1-f_PEave1)/(f_KEave1))
+velocity all scale ${TempNew}
+
+#Writing data
+
+write_data [FILENAME] nocoeff
